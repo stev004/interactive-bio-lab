@@ -1,0 +1,56 @@
+:root {
+  font-family: 'Inter', system-ui, sans-serif;
+  line-height: 1.5;
+  color: #213547;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: #f0f2f5; /* Light Lab Gray */
+}
+
+#root {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: row; /* Split screen */
+}
+
+/* LEFT: The Simulation */
+.canvas-container {
+  flex: 2; /* Takes up 66% of width */
+  background: #ffffff;
+  position: relative;
+  box-shadow: inset -5px 0 10px rgba(0,0,0,0.05);
+}
+
+/* RIGHT: The Textbook/Controls */
+.sidebar {
+  flex: 1; /* Takes up 33% of width */
+  padding: 2rem;
+  background: #f8f9fa;
+  overflow-y: auto;
+  border-left: 1px solid #dee2e6;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+h1 { font-size: 1.8rem; margin: 0; color: #343a40; }
+h2 { font-size: 1.2rem; margin-bottom: 0.5rem; color: #495057; }
+p { font-size: 0.95rem; color: #6c757d; margin-bottom: 1rem; }
+
+.control-group {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+label { display: block; font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem;}
+input[type="range"] { width: 100%; cursor: pointer; }
+.value-tag { float: right; color: #3b82f6; }
