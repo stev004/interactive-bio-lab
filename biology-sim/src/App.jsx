@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import Enzymes from './simulations/enzymes'
+import Enzymes from './simulations/Enzymes_TEMP'
 import Membrane from './simulations/Membrane'
 import GeneRegulation from './simulations/GeneRegulation' // <--- IMPORT THIS
 import './App.css'
