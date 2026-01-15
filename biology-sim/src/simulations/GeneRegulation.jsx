@@ -1,10 +1,10 @@
-import { Canvas, useFrame } from '@react-three/fiber'
-import { OrthographicCamera, Text, RoundedBox, Float } from '@react-three/drei'
+import { useFrame } from '@react-three/fiber'
+import { Text, RoundedBox, Float, OrthographicCamera } from '@react-three/drei'
 import { Physics, RigidBody, CuboidCollider } from '@react-three/rapier'
-import { useState, useMemo, useRef, useEffect } from 'react'
-import * as THREE from 'three'
+import { useState, useMemo, useRef } from 'react'
+import SimulationLayout from '../components/SimulationLayout' // <--- The new import!
 
-// --- ACTORS (Same as before) ---
+// --- ACTORS (These are unchanged) ---
 function DNA() {
   return (
     <group position={[0, -2, 0]}>
@@ -95,86 +95,73 @@ export default function GeneRegulation() {
   const target = 10
   const isComplete = mrnaCount >= target
 
-  const lactoseMolecules = useMemo(() => {
-    if (lactoseLevel < 10) return []
-    return new Array(Math.floor(lactoseLevel / 1.5)).fill(0).map((_, i) => ({
-      id: i,
-      pos: [(Math.random()-0.5)*14, 3 + (Math.random()*5), 0]
-    }))
-  }, [lactoseLevel])
-
-  return (
+  // 1. DEFINE THE CONTROLS (This goes into the "controls" slot)
+  const MyControls = (
     <>
-      <div className="canvas-container">
-        <div style={{ position: 'absolute', top: 20, right: 20, textAlign: 'right', pointerEvents: 'none' }}>
-            <h3 style={{ margin: 0, color: '#868e96', fontSize: '0.8rem' }}>mRNA PRODUCED</h3>
-            <div style={{ fontSize: '2rem', fontWeight: '800', color: isComplete ? '#51cf66' : '#212529' }}>
-                {mrnaCount} <span style={{fontSize: '1rem', color: '#adb5bd'}}> / {target}</span>
-            </div>
-            {isComplete && <div style={{color: '#51cf66', fontWeight: 'bold'}}>TARGET REACHED!</div>}
+      <div className="control-group">
+        <h3 style={{marginTop: 0}}>Experimental Controls</h3>
+        <div style={{ marginBottom: '1.5rem' }}>
+            <label style={{display:'block', marginBottom: 10, fontWeight:'bold', color:'#495057'}}>Lactose Level</label>
+            <input type="range" min="0" max="100" style={{width: '100%'}} value={lactoseLevel} onChange={(e) => setLactoseLevel(parseInt(e.target.value))} />
         </div>
-
-        <Canvas>
-          <OrthographicCamera makeDefault position={[0, 0, 20]} zoom={40} />
-          <ambientLight intensity={1} />
-          <directionalLight position={[5, 10, 10]} intensity={1} />
-          <Physics gravity={[0, -1, 0]}>
-            <DNA />
-            <Polymerase isBlocked={isRepressorActive} onFinish={() => setMrnaCount(c => c + 1)} />
-            <Repressor hasLactose={!isRepressorActive} />
-            {lactoseMolecules.map(l => <Lactose key={l.id} position={l.pos} />)}
-            <RigidBody type="fixed">
-                 <CuboidCollider args={[10, 1, 1]} position={[0, 8, 0]} />
-                 <CuboidCollider args={[1, 10, 1]} position={[-9, 0, 0]} />
-                 <CuboidCollider args={[1, 10, 1]} position={[9, 0, 0]} />
-                 <CuboidCollider args={[10, 1, 1]} position={[0, -5, 0]} /> 
-            </RigidBody>
-          </Physics>
-        </Canvas>
+        
+        <div style={{ padding: '12px', background: isRepressorActive ? '#fff5f5' : '#f3f9f4', borderRadius: '8px', borderLeft: `4px solid ${isRepressorActive ? '#ff8787' : '#69db7c'}`}}>
+            <strong style={{display: 'block', fontSize: '0.8rem', color: '#868e96', marginBottom: '4px'}}>GENE STATUS</strong>
+            {isRepressorActive ? <span style={{color: '#e03131', fontWeight: '600'}}>BLOCKED (Repressed)</span> : <span style={{color: '#2b8a3e', fontWeight: '600'}}>TRANSCRIBING (Expressing)</span>}
+        </div>
       </div>
 
-      <div className="sidebar">
-        <div>
-           <span style={{ background: '#fff4e6', color: '#e8590c', padding: '4px 8px', borderRadius: 4, fontSize: '0.75rem', fontWeight: 'bold' }}>
-            TOPIC 3
-          </span>
-          <h1 style={{ marginTop: '0.5rem' }}>Gene Regulation</h1>
-          <p>The Lac Operon Model</p>
-        </div>
-
-        <div className="control-group">
-          <h2>Experimental Controls</h2>
-          
-          <div style={{ marginBottom: '1.5rem' }}>
-            <label>Lactose Level (Inducer)</label>
-            <input type="range" min="0" max="100" value={lactoseLevel} onChange={(e) => setLactoseLevel(parseInt(e.target.value))} />
-          </div>
-          
-          <div style={{ 
-              padding: '12px', 
-              background: isRepressorActive ? '#fff5f5' : '#f3f9f4', 
-              borderRadius: '8px', 
-              borderLeft: `4px solid ${isRepressorActive ? '#ff8787' : '#69db7c'}`
-          }}>
-              <strong style={{display: 'block', fontSize: '0.8rem', color: '#868e96', marginBottom: '4px'}}>GENE STATUS</strong>
-              {isRepressorActive ? (
-                  <span style={{color: '#e03131', fontWeight: '600'}}>BLOCKED (Repressed)</span>
-              ) : (
-                  <span style={{color: '#2b8a3e', fontWeight: '600'}}>TRANSCRIBING (Expressing)</span>
-              )}
-          </div>
-        </div>
-
-        <div className="control-group">
-             <h2>The Science</h2>
-             <p>
-                <strong>No Lactose:</strong> The Repressor (Red) sits on the Operator, physically blocking the RNA Polymerase. The gene is turned off.
-             </p>
-             <p>
-                <strong>With Lactose:</strong> The sugar binds to the Repressor, changing its shape. It falls off the DNA. The Polymerase is now free to create mRNA.
-             </p>
-        </div>
+      <div className="control-group" style={{marginTop: '2rem'}}>
+           <h3 style={{marginTop: 0}}>Mission</h3>
+           <p style={{lineHeight: 1.6, color: '#495057'}}>The cell needs proteins! Increase the <strong>Lactose Level</strong> to remove the Repressor block.</p>
+           <div style={{marginTop: '10px', padding: '10px', background: isComplete ? '#d3f9d8' : '#e9ecef', borderRadius: 6, fontWeight: 'bold', color: isComplete ? '#2b8a3e' : '#495057'}}>
+              Goal: {mrnaCount} / {target} mRNA strands
+           </div>
       </div>
     </>
+  )
+
+  // 2. DEFINE THE 3D SCENE (This goes into the "children" slot)
+  const MyScene = () => {
+    const lactoseMolecules = useMemo(() => {
+        if (lactoseLevel < 10) return []
+        return new Array(Math.floor(lactoseLevel / 1.5)).fill(0).map((_, i) => ({
+          id: i,
+          pos: [(Math.random()-0.5)*14, 3 + (Math.random()*5), 0]
+        }))
+    }, [lactoseLevel])
+
+    return (
+        <>
+            <OrthographicCamera makeDefault position={[0, 0, 20]} zoom={40} />
+            <ambientLight intensity={1} />
+            <directionalLight position={[5, 10, 10]} intensity={1} />
+            <Physics gravity={[0, -1, 0]}>
+                <DNA />
+                <Polymerase isBlocked={isRepressorActive} onFinish={() => setMrnaCount(c => c + 1)} />
+                <Repressor hasLactose={!isRepressorActive} />
+                {lactoseMolecules.map(l => <Lactose key={l.id} position={l.pos} />)}
+                <RigidBody type="fixed">
+                        <CuboidCollider args={[10, 1, 1]} position={[0, 8, 0]} />
+                        <CuboidCollider args={[1, 10, 1]} position={[-9, 0, 0]} />
+                        <CuboidCollider args={[1, 10, 1]} position={[9, 0, 0]} />
+                        <CuboidCollider args={[10, 1, 1]} position={[0, -5, 0]} /> 
+                </RigidBody>
+            </Physics>
+        </>
+    )
+  }
+
+  // 3. RENDER THE LAYOUT
+  return (
+    <SimulationLayout
+      title="Gene Regulation"
+      description="The Lac Operon Model"
+      topic="TOPIC 3"
+      color="#e8590c"
+      controls={MyControls}
+    >
+      <MyScene />
+    </SimulationLayout>
   )
 }

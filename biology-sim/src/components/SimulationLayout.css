@@ -1,0 +1,94 @@
+/* src/components/SimulationLayout.css */
+
+/* GLOBAL CONTAINER */
+.layout-container {
+  display: flex;
+  flex-direction: row; /* Desktop: Side by Side */
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* 3D CANVAS AREA */
+.canvas-section {
+  flex: 1.5; /* Takes up 60% of width on desktop */
+  height: 100%;
+  position: relative;
+  background: #f8f9fa;
+}
+
+/* UI DASHBOARD AREA */
+.ui-section {
+  flex: 1; /* Takes up 40% of width on desktop */
+  height: 100%;
+  background: white;
+  box-shadow: -5px 0 20px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+}
+
+.header {
+  padding: 2rem 2rem 1rem 2rem;
+  border-bottom: 1px solid #eee;
+}
+
+.header h1 {
+  margin: 0.5rem 0 0.2rem 0;
+  font-size: 2rem;
+  color: #212529;
+}
+
+.header p {
+  margin: 0;
+  color: #868e96;
+}
+
+.topic-tag {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Controls Area */
+.controls-scroll-area {
+  padding: 2rem;
+  overflow-y: auto; /* Allows scrolling if controls are tall */
+  flex-grow: 1;
+}
+
+/* --- MOBILE BREAKPOINT (Tablets and Phones) --- */
+@media (max-width: 900px) {
+  .layout-container {
+    flex-direction: column; /* Stack vertically */
+  }
+
+  .canvas-section {
+    flex: none;
+    height: 50vh; /* Canvas takes top half */
+    width: 100%;
+  }
+
+  .ui-section {
+    flex: 1;
+    height: 50vh; /* UI takes bottom half */
+    width: 100%;
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    box-shadow: 0 -5px 20px rgba(0,0,0,0.05);
+    /* Negative margin pulls the white card UP over the canvas slightly for a modern look */
+    margin-top: -20px; 
+  }
+
+  .header {
+    padding: 1.5rem;
+  }
+
+  .header h1 {
+    font-size: 1.5rem;
+  }
+}
