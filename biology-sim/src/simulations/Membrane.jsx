@@ -124,7 +124,7 @@ export default function Membrane() {
     </>
   )
 
-  // 2. RENDER (No wrapper function!)
+  // 2. RENDER
   return (
     <SimulationLayout
       title="Membrane Transport"
@@ -133,12 +133,18 @@ export default function Membrane() {
       color="#1098ad"
       controls={MyControls}
     >
-        <OrthographicCamera makeDefault position={[0, 0, 20]} zoom={35} />
+        {/* ZOOM FIX: Changed from 35 to 24. 
+            This zooms OUT so the full width fits on mobile screens. 
+        */}
+        <OrthographicCamera makeDefault position={[0, 0, 20]} zoom={24} />
         <ambientLight intensity={1} />
         
         <Physics gravity={[0, 0, 0]}>
-            <Text position={[-8, 6, -5]} fontSize={0.6} color="#adb5bd" anchorX="left">EXTRACELLULAR</Text>
-            <Text position={[-8, -6, -5]} fontSize={0.6} color="#adb5bd" anchorX="left">INTRACELLULAR</Text>
+            {/* TEXT FIX: Changed x position from -8 to 0 (Center) 
+                and anchorX="center". This ensures they are never cut off.
+            */}
+            <Text position={[0, 5, -5]} fontSize={0.6} color="#adb5bd" anchorX="center">EXTRACELLULAR</Text>
+            <Text position={[0, -5, -5]} fontSize={0.6} color="#adb5bd" anchorX="center">INTRACELLULAR</Text>
             
             {/* Background water */}
             <mesh position={[0, 0, -1]}>
@@ -146,23 +152,19 @@ export default function Membrane() {
                 <meshBasicMaterial color={isOpen ? "#fff9db" : "#fff3bf"} transparent opacity={0.8} />
             </mesh>
 
-            {/* Invisible Walls to prevent leaking out of bounds */}
             <RigidBody type="fixed">
                  <CuboidCollider args={[6, 1.4, 5]} position={[-7, 0, 0]} />
                  <CuboidCollider args={[6, 1.4, 5]} position={[7, 0, 0]} />
             </RigidBody>
 
-            {/* The Actors */}
             {lipids.map((l, i) => <Lipid key={i} position={l.pos} isTop={l.isTop} />)}
             
             <ChannelProtein isOpen={isOpen} />
             
-            {/* We key the group to force a reset when slider changes */}
             <group key={resetKey}>
                 {ions.slice(0, ionCount).map(ion => <Ion key={ion.id} position={ion.pos} isOpen={isOpen} />)}
             </group>
 
-            {/* Box Borders */}
             <RigidBody type="fixed">
                <CuboidCollider args={[10, 1, 1]} position={[0, 8, 0]} />
                <CuboidCollider args={[10, 1, 1]} position={[0, -8, 0]} />

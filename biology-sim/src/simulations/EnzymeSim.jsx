@@ -5,11 +5,10 @@ import { useState, useRef, useMemo, useEffect } from 'react'
 import * as THREE from 'three'
 import SimulationLayout from '../components/SimulationLayout'
 
-// --- ACTORS (Static Definitions) ---
+// --- ACTORS ---
 
 function Substrate({ position }) {
   const rigidBody = useRef()
-  // Apply a tiny impulse every frame to simulate Brownian motion (heat)
   useFrame(() => { 
     if (rigidBody.current) {
         rigidBody.current.applyImpulse({ x: (Math.random() - 0.5) * 0.15, y: (Math.random() - 0.5) * 0.15, z: 0 }, true) 
@@ -17,7 +16,11 @@ function Substrate({ position }) {
   })
   return (
     <RigidBody ref={rigidBody} position={position} restitution={1} friction={0} linearDamping={0.5} colliders="ball" lockTranslations={[false,false,true]} enabledTranslations={[true, true, false]}>
-      <mesh><circleGeometry args={[0.3, 32]} /><meshToonMaterial color="#ff6b6b" /></mesh>
+      {/* Visual Mesh moved to z=0.1 to sit ON TOP of enzymes */}
+      <mesh position={[0, 0, 0.1]}>
+        <circleGeometry args={[0.22, 32]} />
+        <meshToonMaterial color="#ff6b6b" />
+      </mesh>
     </RigidBody>
   )
 }
@@ -29,12 +32,23 @@ function Inhibitor({ position }) {
         rigidBody.current.applyImpulse({ x: (Math.random() - 0.5) * 0.1, y: (Math.random() - 0.5) * 0.1, z: 0 }, true) 
     }
   })
+  // Made shape slightly smaller (0.4 -> 0.3)
   const shape = useMemo(() => {
-    const s = new THREE.Shape(); s.moveTo(0, 0.4); s.lineTo(0.4, -0.4); s.lineTo(-0.4, -0.4); s.lineTo(0, 0.4); return s
+    const s = new THREE.Shape(); 
+    s.moveTo(0, 0.3); 
+    s.lineTo(0.3, -0.3); 
+    s.lineTo(-0.3, -0.3); 
+    s.lineTo(0, 0.3); 
+    return s
   }, [])
+  
   return (
     <RigidBody ref={rigidBody} position={position} restitution={0.8} friction={0} linearDamping={0.5} colliders="hull" lockTranslations={[false,false,true]} enabledTranslations={[true, true, false]}>
-      <mesh><shapeGeometry args={[shape]} /><meshToonMaterial color="#868e96" /></mesh>
+      {/* Visual Mesh moved to z=0.1 to sit ON TOP of enzymes */}
+      <mesh position={[0, 0, 0.1]}>
+        <shapeGeometry args={[shape]} />
+        <meshToonMaterial color="#868e96" />
+      </mesh>
     </RigidBody>
   )
 }
@@ -44,7 +58,6 @@ function Enzyme({ position, onReaction }) {
   const groupRef = useRef()
   
   const handleCollision = ({ other }) => { 
-      // Only react if we aren't already busy
       if (!active) {
         setActive(true)
         onReaction()
@@ -62,7 +75,8 @@ function Enzyme({ position, onReaction }) {
   return (
     <RigidBody position={position} type="fixed" onCollisionEnter={handleCollision} colliders="hull">
       <group ref={groupRef}>
-        <mesh>
+        {/* Visual Mesh moved to z=-0.2 to sit BEHIND particles */}
+        <mesh position={[0, 0, -0.2]}>
           <extrudeGeometry args={[enzymeShape, { depth: 0.4, bevelEnabled: true, bevelSize: 0.05, bevelThickness: 0.05 }]} />
           <meshToonMaterial color={active ? "#51cf66" : "#228be6"} /> 
         </mesh>
@@ -80,7 +94,6 @@ function PetriDish() {
         <CuboidCollider args={[1, 5, 10]} position={[9, 0, 0]} />
         <CuboidCollider args={[8, 1, 10]} position={[0, 6, 0]} />
         <CuboidCollider args={[8, 1, 10]} position={[0, -6, 0]} />
-        {/* Front and Back glass to keep balls in 2D plane */}
         <CuboidCollider args={[16, 10, 1]} position={[0, 0, -2]} />
         <CuboidCollider args={[16, 10, 1]} position={[0, 0, 2]} />
       </RigidBody>
@@ -95,6 +108,11 @@ export default function EnzymeSim() {
   const [inhibitorCount, setInhibitorCount] = useState(0)
   const [reactions, setReactions] = useState(0)
 
+  // ENZYME POSITIONS
+  // We define these here so the spawn logic knows where to avoid
+  const enzymePos1 = [-3, 0, 0]
+  const enzymePos2 = [3, 1.5, 0]
+
   useEffect(() => { const interval = setInterval(() => setReactions(0), 5000); return () => clearInterval(interval) }, [])
   
   const handleNextStage = () => { 
@@ -102,14 +120,35 @@ export default function EnzymeSim() {
       setInhibitorCount(8) 
   }
 
-  // Pre-calculate items so they don't regenerate on every render
-  const items = useMemo(() => {
-    const subs = new Array(50).fill(0).map((_, i) => ({ id: `sub-${i}`, pos: [(Math.random()-0.5)*14, (Math.random()-0.5)*8, 0] }))
-    const inhibs = new Array(20).fill(0).map((_, i) => ({ id: `inh-${i}`, pos: [(Math.random()-0.5)*14, (Math.random()-0.5)*8, 0] }))
-    return { subs, inhibs }
-  }, [])
+  // --- SAFE SPAWN LOGIC ---
+  // Generates positions but retries if they are too close to enzymes
+  const getSafePosition = () => {
+      let pos, valid = false;
+      let attempts = 0;
+      while(!valid && attempts < 20) {
+          pos = [(Math.random()-0.5)*14, (Math.random()-0.5)*8, 0]
+          // Check distance to Enzyme 1
+          const d1 = Math.hypot(pos[0] - enzymePos1[0], pos[1] - enzymePos1[1])
+          // Check distance to Enzyme 2
+          const d2 = Math.hypot(pos[0] - enzymePos2[0], pos[1] - enzymePos2[1])
+          
+          // If we are at least 2.5 units away from both, it's a valid spawn
+          if (d1 > 2.5 && d2 > 2.5) {
+              valid = true
+          }
+          attempts++
+      }
+      return pos
+  }
 
-  // 1. COMPACT CONTROLS
+  // Pre-calculate items using safe logic
+  const items = useMemo(() => {
+    const subs = new Array(50).fill(0).map((_, i) => ({ id: `sub-${i}`, pos: getSafePosition() }))
+    const inhibs = new Array(20).fill(0).map((_, i) => ({ id: `inh-${i}`, pos: getSafePosition() }))
+    return { subs, inhibs }
+  }, []) // Empty dependency array = calculate ONCE on load
+
+  // CONTROLS UI
   const MyControls = (
     <>
       <div className="control-group">
@@ -156,8 +195,6 @@ export default function EnzymeSim() {
     </>
   )
 
-  // 2. THE RENDER
-  // Note: We pass the scene DIRECTLY as children, no "MyScene" wrapper function.
   return (
     <SimulationLayout
       title="Enzyme Kinetics"
@@ -166,15 +203,15 @@ export default function EnzymeSim() {
       color="#1971c2"
       controls={MyControls}
     >
-        <OrthographicCamera makeDefault position={[0, 0, 20]} zoom={45} />
+        {/* Zoom reduced from 45 -> 35 to fit more on mobile screens */}
+        <OrthographicCamera makeDefault position={[0, 0, 20]} zoom={35} />
         <ambientLight intensity={0.9} />
         <directionalLight position={[5, 10, 10]} intensity={0.5} />
         
         <Physics gravity={[0, 0, 0]}>
             <PetriDish />
-            {/* We use a stable callback wrapper for the reaction update to be safe, though inline is fine now */}
-            <Enzyme position={[-3, 0, 0]} onReaction={() => setReactions(r => r + 1)} />
-            <Enzyme position={[3, 1.5, 0]} onReaction={() => setReactions(r => r + 1)} />
+            <Enzyme position={enzymePos1} onReaction={() => setReactions(r => r + 1)} />
+            <Enzyme position={enzymePos2} onReaction={() => setReactions(r => r + 1)} />
             
             {items.subs.slice(0, substrateCount).map(s => <Substrate key={s.id} position={s.pos} />)}
             {items.inhibs.slice(0, inhibitorCount).map(s => <Inhibitor key={s.id} position={s.pos} />)}
