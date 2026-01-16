@@ -10,8 +10,9 @@ function Proton({ position }) {
   const rigidBody = useRef()
   useFrame(() => {
     if (rigidBody.current && rigidBody.current.translation().y < -10) {
-        rigidBody.current.setTranslation({ x: 0, y: 15, z: 0 }, true)
-        rigidBody.current.setLinvel({ x: (Math.random()-0.5)*2, y: -2, z: 0 }, true)
+        // Respawn high above the funnel
+        rigidBody.current.setTranslation({ x: 1 + Math.random(), y: 15, z: 0 }, true)
+        rigidBody.current.setLinvel({ x: 0, y: -5, z: 0 }, true)
     }
   })
   
@@ -22,7 +23,8 @@ function Proton({ position }) {
         colliders="ball" 
         restitution={0.5} 
         friction={0.1}
-        linearDamping={2} 
+        // SPEED FIX: Lowered damping (0.5) so they fall fast with the new -7 gravity
+        linearDamping={0.5} 
         lockTranslations={[false, false, true]}
         enabledTranslations={[true, true, false]}
     >
@@ -65,7 +67,7 @@ function Rotor({ onSpeedChange }) {
         colliders={false} 
         lockTranslations 
         lockRotations={[true, true, false]} 
-        linearDamping={0.5} 
+        linearDamping={0.1} 
         angularDamping={0.02} 
     >
         <mesh>
@@ -81,15 +83,21 @@ function Rotor({ onSpeedChange }) {
 function Stator() {
   return (
     <RigidBody type="fixed">
-        <CuboidCollider args={[0.5, 3, 1]} position={[-3.2, 4, 0]} rotation={[0,0, -0.2]} />
-        <mesh position={[-3.2, 4, 0]} rotation={[0,0, -0.2]}>
-            <boxGeometry args={[1, 6, 1]} />
+        {/* COUNTER-TORQUE FIX: 
+            Left Wall moved to x=-0.5 (Center-Left).
+            This BLOCKS protons from hitting the left side of the turbine.
+            Result: Flow is forced to the Right side -> Maximum Clockwise Torque.
+        */}
+        <CuboidCollider args={[0.5, 4, 1]} position={[-0.5, 5, 0]} rotation={[0,0, 0.1]} />
+        <mesh position={[-0.5, 5, 0]} rotation={[0,0, 0.1]}>
+            <boxGeometry args={[1, 8, 1]} />
             <meshToonMaterial color="#868e96" transparent opacity={0.5} />
         </mesh>
 
-        <CuboidCollider args={[0.5, 3, 1]} position={[3.2, 4, 0]} rotation={[0,0, 0.2]} />
-        <mesh position={[3.2, 4, 0]} rotation={[0,0, 0.2]}>
-            <boxGeometry args={[1, 6, 1]} />
+        {/* Right Wall guide */}
+        <CuboidCollider args={[0.5, 4, 1]} position={[3.5, 5, 0]} rotation={[0,0, -0.1]} />
+        <mesh position={[3.5, 5, 0]} rotation={[0,0, -0.1]}>
+            <boxGeometry args={[1, 8, 1]} />
             <meshToonMaterial color="#868e96" transparent opacity={0.5} />
         </mesh>
     </RigidBody>
@@ -102,10 +110,9 @@ export default function ATPSynthase() {
   const [rpm, setRpm] = useState(0)
   const [atpProduced, setAtpProduced] = useState(0)
   
-  // LOGIC FIX: Threshold lowered from 20 -> 5 RPM
   useEffect(() => {
-      if (rpm > 5) {
-         // Production rate increases with speed
+      // Threshold is 10 RPM now because it spins much faster
+      if (rpm > 10) {
          const interval = setInterval(() => setAtpProduced(c => c + 1), 5000 / rpm)
          return () => clearInterval(interval)
       }
@@ -114,7 +121,9 @@ export default function ATPSynthase() {
   const protons = useMemo(() => {
       return new Array(60).fill(0).map((_, i) => ({
           id: i,
-          pos: [(Math.random()-0.5)*4, 6 + (i * 1.5), 0]
+          // SPAWN FIX: x is 0.5 to 2.5. 
+          // Spawns ONLY on the right side to hit the "Power Stroke" blades.
+          pos: [0.5 + Math.random() * 2, 6 + (i * 1.5), 0]
       }))
   }, [])
 
@@ -123,8 +132,7 @@ export default function ATPSynthase() {
       <div className="control-group">
         <div style={{display: 'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1rem'}}>
              <h3 style={{margin: 0}}>Turbine Status</h3>
-             {/* THRESHOLD FIX: Green if > 5 (was > 50) */}
-             <div style={{ background: rpm > 5 ? '#d3f9d8' : '#fff5f5', padding: '4px 12px', borderRadius: '20px', color: rpm > 5 ? '#2b8a3e' : '#e03131', fontWeight: 'bold', fontSize: '0.9rem' }}>
+             <div style={{ background: rpm > 10 ? '#d3f9d8' : '#fff5f5', padding: '4px 12px', borderRadius: '20px', color: rpm > 10 ? '#2b8a3e' : '#e03131', fontWeight: 'bold', fontSize: '0.9rem' }}>
                 {Math.round(rpm)} RPM
              </div>
         </div>
@@ -144,7 +152,7 @@ export default function ATPSynthase() {
       <div className="control-group" style={{marginTop: '1.5rem'}}>
              <h3 style={{marginTop: 0, fontSize: '1.1rem'}}>The Science</h3>
              <p style={{lineHeight: 1.5, color: '#495057', fontSize: '0.9rem'}}>
-                This is a literal motor. H+ ions flow down their gradient, physically pushing the rotor. This rotation forces ADP + P together to make ATP.
+                The flow of H+ ions creates torque. We focus the flow on one side to maximize rotation speed (RPM).
              </p>
       </div>
     </>
@@ -158,14 +166,12 @@ export default function ATPSynthase() {
       color="#e8590c"
       controls={MyControls}
     >
-        {/* ZOOM FIX: Changed from 30 -> 22 to zoom out */}
         <OrthographicCamera makeDefault position={[0, 0, 20]} zoom={22} />
-        
         <ambientLight intensity={1} />
         <directionalLight position={[5, 10, 10]} intensity={1} />
         
-        <Physics gravity={[0, -2, 0]}>
-            {/* TEXT FIX: Moved Intermembrane Space down from 7.5 to 6.5 */}
+        {/* GRAVITY FIX: Increased to -7 as requested */}
+        <Physics gravity={[0, -7, 0]}>
             <Text position={[0, 6.5, -5]} fontSize={0.7} color="#adb5bd" anchorX="center">INTERMEMBRANE SPACE (High H+)</Text>
             <Text position={[0, -5, -5]} fontSize={0.7} color="#adb5bd" anchorX="center">MATRIX (Low H+)</Text>
 
