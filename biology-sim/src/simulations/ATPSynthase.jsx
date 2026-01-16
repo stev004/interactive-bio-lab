@@ -164,7 +164,7 @@ export default function ATPSynthase() {
         <ambientLight intensity={1} />
         <directionalLight position={[5, 10, 10]} intensity={1} />
         
-        <Physics gravity={[0, -2, 0]}>
+        <Physics gravity={[0, -7, 0]}>
             {/* TEXT FIX: Moved Intermembrane Space down from 7.5 to 6.5 */}
             <Text position={[0, 6.5, -5]} fontSize={0.7} color="#adb5bd" anchorX="center">INTERMEMBRANE SPACE (High H+)</Text>
             <Text position={[0, -5, -5]} fontSize={0.7} color="#adb5bd" anchorX="center">MATRIX (Low H+)</Text>
