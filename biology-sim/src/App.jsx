@@ -2,6 +2,7 @@ import { useState } from 'react'
 import Enzymes from './simulations/EnzymeSim' // Or EnzymeSim depending on your rename
 import Membrane from './simulations/Membrane'
 import GeneRegulation from './simulations/GeneRegulation'
+import ATPSynthase from './simulations/ATPSynthase'
 import './App.css'
 
 export default function App() {
@@ -11,6 +12,7 @@ export default function App() {
   if (currentSim === 'enzymes') return <><BackButton set={setCurrentSim} /><Enzymes /></>
   if (currentSim === 'membrane') return <><BackButton set={setCurrentSim} /><Membrane /></>
   if (currentSim === 'gene') return <><BackButton set={setCurrentSim} /><GeneRegulation /></>
+  if (currentSim === 'atp') return <><BackButton set={setCurrentSim} /><ATPSynthase /></>
 
   return (
     <div className="menu-container">
@@ -38,6 +40,12 @@ export default function App() {
           desc="The Lac Operon Model" 
           color="#ff922b"
           onClick={() => setCurrentSim('gene')} 
+        />
+        <Card 
+          title="ATP Synthase" 
+          desc="The Molecular Motor" 
+          color="#e8590c"
+          onClick={() => setCurrentSim('atp')} 
         />
       </div>
     </div>
