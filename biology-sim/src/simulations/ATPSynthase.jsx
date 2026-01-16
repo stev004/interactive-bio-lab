@@ -1,15 +1,13 @@
 import { useFrame } from '@react-three/fiber'
-import { OrthographicCamera, Text, RoundedBox } from '@react-three/drei'
+import { OrthographicCamera, Text } from '@react-three/drei'
 import { Physics, RigidBody, CuboidCollider, CylinderCollider } from '@react-three/rapier'
 import { useState, useMemo, useRef, useEffect } from 'react'
-import * as THREE from 'three'
 import SimulationLayout from '../components/SimulationLayout'
 
 // --- ACTORS ---
 
 function Proton({ position }) {
   const rigidBody = useRef()
-  // Destroy protons that fall too far
   useFrame(() => {
     if (rigidBody.current && rigidBody.current.translation().y < -10) {
         rigidBody.current.setTranslation({ x: 0, y: 15, z: 0 }, true)
@@ -24,7 +22,6 @@ function Proton({ position }) {
         colliders="ball" 
         restitution={0.5} 
         friction={0.1}
-        // VISCOSITY FIX: linearDamping=2 makes it move like it's in water
         linearDamping={2} 
         lockTranslations={[false, false, true]}
         enabledTranslations={[true, true, false]}
@@ -69,7 +66,6 @@ function Rotor({ onSpeedChange }) {
         lockTranslations 
         lockRotations={[true, true, false]} 
         linearDamping={0.5} 
-        // REDUCED FRICTION: 0.1 -> 0.02 so softer balls can still spin it
         angularDamping={0.02} 
     >
         <mesh>
@@ -106,9 +102,11 @@ export default function ATPSynthase() {
   const [rpm, setRpm] = useState(0)
   const [atpProduced, setAtpProduced] = useState(0)
   
+  // LOGIC FIX: Threshold lowered from 20 -> 5 RPM
   useEffect(() => {
-      if (rpm > 20) {
-         const interval = setInterval(() => setAtpProduced(c => c + 1), 10000 / rpm)
+      if (rpm > 5) {
+         // Production rate increases with speed
+         const interval = setInterval(() => setAtpProduced(c => c + 1), 5000 / rpm)
          return () => clearInterval(interval)
       }
   }, [rpm])
@@ -125,7 +123,8 @@ export default function ATPSynthase() {
       <div className="control-group">
         <div style={{display: 'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1rem'}}>
              <h3 style={{margin: 0}}>Turbine Status</h3>
-             <div style={{ background: rpm > 50 ? '#d3f9d8' : '#fff5f5', padding: '4px 12px', borderRadius: '20px', color: rpm > 50 ? '#2b8a3e' : '#e03131', fontWeight: 'bold', fontSize: '0.9rem' }}>
+             {/* THRESHOLD FIX: Green if > 5 (was > 50) */}
+             <div style={{ background: rpm > 5 ? '#d3f9d8' : '#fff5f5', padding: '4px 12px', borderRadius: '20px', color: rpm > 5 ? '#2b8a3e' : '#e03131', fontWeight: 'bold', fontSize: '0.9rem' }}>
                 {Math.round(rpm)} RPM
              </div>
         </div>
@@ -159,15 +158,15 @@ export default function ATPSynthase() {
       color="#e8590c"
       controls={MyControls}
     >
-        <OrthographicCamera makeDefault position={[0, 0, 20]} zoom={30} />
+        {/* ZOOM FIX: Changed from 30 -> 22 to zoom out */}
+        <OrthographicCamera makeDefault position={[0, 0, 20]} zoom={22} />
+        
         <ambientLight intensity={1} />
         <directionalLight position={[5, 10, 10]} intensity={1} />
         
-        {/* GRAVITY REDUCED: -9.8 -> -2.0 for "Floating" effect */}
-        <Physics gravity={[0, -7, 0]}>
-            
-            {/* ANNOTATIONS FIX: Centered (x=0) and moved clear of the funnel */}
-            <Text position={[0, 7.5, -5]} fontSize={0.7} color="#adb5bd" anchorX="center">INTERMEMBRANE SPACE (High H+)</Text>
+        <Physics gravity={[0, -2, 0]}>
+            {/* TEXT FIX: Moved Intermembrane Space down from 7.5 to 6.5 */}
+            <Text position={[0, 6.5, -5]} fontSize={0.7} color="#adb5bd" anchorX="center">INTERMEMBRANE SPACE (High H+)</Text>
             <Text position={[0, -5, -5]} fontSize={0.7} color="#adb5bd" anchorX="center">MATRIX (Low H+)</Text>
 
             <mesh position={[0, -2, -1]}>
