@@ -10,8 +10,10 @@ function Proton({ position }) {
   const rigidBody = useRef()
   useFrame(() => {
     if (rigidBody.current && rigidBody.current.translation().y < -10) {
-        // Respawn high above the funnel
-        rigidBody.current.setTranslation({ x: 1 + Math.random(), y: 15, z: 0 }, true)
+        // STREAM FIX: 
+        // x range is 0.2 to 1.7. 
+        // This is a TIGHT column hitting only the right-side blades.
+        rigidBody.current.setTranslation({ x: 0.2 + Math.random() * 1.5, y: 15, z: 0 }, true)
         rigidBody.current.setLinvel({ x: 0, y: -5, z: 0 }, true)
     }
   })
@@ -22,14 +24,13 @@ function Proton({ position }) {
         position={position} 
         colliders="ball" 
         restitution={0.5} 
-        friction={0.1}
-        // SPEED FIX: Lowered damping (0.5) so they fall fast with the new -7 gravity
+        friction={0} 
         linearDamping={0.5} 
         lockTranslations={[false, false, true]}
         enabledTranslations={[true, true, false]}
     >
       <mesh>
-        <sphereGeometry args={[0.25, 16, 16]} />
+        <sphereGeometry args={[0.20, 16, 16]} />
         <meshToonMaterial color="#ffec99" />
       </mesh>
     </RigidBody>
@@ -69,6 +70,7 @@ function Rotor({ onSpeedChange }) {
         lockRotations={[true, true, false]} 
         linearDamping={0.1} 
         angularDamping={0.02} 
+        friction={0} 
     >
         <mesh>
             <cylinderGeometry args={[0.8, 0.8, 1]} />
@@ -82,22 +84,16 @@ function Rotor({ onSpeedChange }) {
 
 function Stator() {
   return (
-    <RigidBody type="fixed">
-        {/* COUNTER-TORQUE FIX: 
-            Left Wall moved to x=-0.5 (Center-Left).
-            This BLOCKS protons from hitting the left side of the turbine.
-            Result: Flow is forced to the Right side -> Maximum Clockwise Torque.
-        */}
-        <CuboidCollider args={[0.5, 4, 1]} position={[-0.5, 5, 0]} rotation={[0,0, 0.1]} />
-        <mesh position={[-0.5, 5, 0]} rotation={[0,0, 0.1]}>
-            <boxGeometry args={[1, 8, 1]} />
+    <RigidBody type="fixed" friction={0}>
+        <CuboidCollider args={[0.5, 5, 1]} position={[-4.0, 6, 0]} rotation={[0,0, -0.3]} />
+        <mesh position={[-4.0, 6, 0]} rotation={[0,0, -0.3]}>
+            <boxGeometry args={[1, 10, 1]} />
             <meshToonMaterial color="#868e96" transparent opacity={0.5} />
         </mesh>
 
-        {/* Right Wall guide */}
-        <CuboidCollider args={[0.5, 4, 1]} position={[3.5, 5, 0]} rotation={[0,0, -0.1]} />
-        <mesh position={[3.5, 5, 0]} rotation={[0,0, -0.1]}>
-            <boxGeometry args={[1, 8, 1]} />
+        <CuboidCollider args={[0.5, 5, 1]} position={[4.0, 6, 0]} rotation={[0,0, 0.3]} />
+        <mesh position={[4.0, 6, 0]} rotation={[0,0, 0.3]}>
+            <boxGeometry args={[1, 10, 1]} />
             <meshToonMaterial color="#868e96" transparent opacity={0.5} />
         </mesh>
     </RigidBody>
@@ -106,24 +102,23 @@ function Stator() {
 
 // --- MAIN COMPONENT ---
 export default function ATPSynthase() {
-  const [protonCount, setProtonCount] = useState(15)
+  const [protonCount, setProtonCount] = useState(30) // Increased default start
   const [rpm, setRpm] = useState(0)
   const [atpProduced, setAtpProduced] = useState(0)
   
   useEffect(() => {
-      // Threshold is 10 RPM now because it spins much faster
-      if (rpm > 10) {
+      if (rpm > 5) {
          const interval = setInterval(() => setAtpProduced(c => c + 1), 5000 / rpm)
          return () => clearInterval(interval)
       }
   }, [rpm])
 
   const protons = useMemo(() => {
-      return new Array(60).fill(0).map((_, i) => ({
+      // QUANTITY FIX: Increased array size from 60 to 100
+      return new Array(100).fill(0).map((_, i) => ({
           id: i,
-          // SPAWN FIX: x is 0.5 to 2.5. 
-          // Spawns ONLY on the right side to hit the "Power Stroke" blades.
-          pos: [0.5 + Math.random() * 2, 6 + (i * 1.5), 0]
+          // Initial spawn matching the new tight stream logic
+          pos: [0.2 + Math.random() * 1.5, 8 + (i * 0.8), 0]
       }))
   }, [])
 
@@ -132,14 +127,15 @@ export default function ATPSynthase() {
       <div className="control-group">
         <div style={{display: 'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'1rem'}}>
              <h3 style={{margin: 0}}>Turbine Status</h3>
-             <div style={{ background: rpm > 10 ? '#d3f9d8' : '#fff5f5', padding: '4px 12px', borderRadius: '20px', color: rpm > 10 ? '#2b8a3e' : '#e03131', fontWeight: 'bold', fontSize: '0.9rem' }}>
+             <div style={{ background: rpm > 5 ? '#d3f9d8' : '#fff5f5', padding: '4px 12px', borderRadius: '20px', color: rpm > 5 ? '#2b8a3e' : '#e03131', fontWeight: 'bold', fontSize: '0.9rem' }}>
                 {Math.round(rpm)} RPM
              </div>
         </div>
 
         <div style={{marginBottom: '1rem'}}>
              <label style={{display:'block', marginBottom: 6, fontWeight:'bold', color:'#495057', fontSize:'0.9rem'}}>Proton Gradient (H+)</label>
-             <input type="range" min="0" max="60" style={{width: '100%'}} value={protonCount} onChange={(e) => setProtonCount(parseInt(e.target.value))} />
+             {/* MAX INCREASED: 60 -> 100 for heavy flow */}
+             <input type="range" min="0" max="100" style={{width: '100%'}} value={protonCount} onChange={(e) => setProtonCount(parseInt(e.target.value))} />
         </div>
 
         <div style={{ background: '#f8f9fa', padding: '15px', borderRadius: '8px', textAlign: 'center', border: '1px solid #dee2e6' }}>
@@ -170,7 +166,6 @@ export default function ATPSynthase() {
         <ambientLight intensity={1} />
         <directionalLight position={[5, 10, 10]} intensity={1} />
         
-        {/* GRAVITY FIX: Increased to -7 as requested */}
         <Physics gravity={[0, -7, 0]}>
             <Text position={[0, 6.5, -5]} fontSize={0.7} color="#adb5bd" anchorX="center">INTERMEMBRANE SPACE (High H+)</Text>
             <Text position={[0, -5, -5]} fontSize={0.7} color="#adb5bd" anchorX="center">MATRIX (Low H+)</Text>

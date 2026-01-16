@@ -1,8 +1,10 @@
 import { useState } from 'react'
-import Enzymes from './simulations/EnzymeSim' // Or EnzymeSim depending on your rename
+import Enzymes from './simulations/EnzymeSim' 
 import Membrane from './simulations/Membrane'
 import GeneRegulation from './simulations/GeneRegulation'
 import ATPSynthase from './simulations/ATPSynthase'
+import ProteinSynthesis from './simulations/ProteinSynthesis'
+import Mutation from './simulations/Mutation'
 import './App.css'
 
 export default function App() {
@@ -13,6 +15,8 @@ export default function App() {
   if (currentSim === 'membrane') return <><BackButton set={setCurrentSim} /><Membrane /></>
   if (currentSim === 'gene') return <><BackButton set={setCurrentSim} /><GeneRegulation /></>
   if (currentSim === 'atp') return <><BackButton set={setCurrentSim} /><ATPSynthase /></>
+  if (currentSim === 'protein') return <><BackButton set={setCurrentSim} /><ProteinSynthesis /></>
+  if (currentSim === 'mutation') return <><BackButton set={setCurrentSim} /><Mutation /></>
 
   return (
     <div className="menu-container">
@@ -46,6 +50,18 @@ export default function App() {
           desc="The Molecular Motor" 
           color="#e8590c"
           onClick={() => setCurrentSim('atp')} 
+        />
+        <Card 
+          title="Protein Synthesis" 
+          desc="Transcription & Translation" 
+          color="#be4bdb"
+          onClick={() => setCurrentSim('protein')} 
+        />
+        <Card 
+          title="Mutation" 
+          desc="DNA Replication Errors" 
+          color="#e64980" 
+          onClick={() => setCurrentSim('mutation')} 
         />
       </div>
     </div>
